@@ -96,11 +96,59 @@ const exerciseCatalog={
   {name:'Glute bridge',emoji:'🌉',dose:'2 sets · 10 reps',tip:'Press through your feet and lift only as high as feels comfortable.',seconds:40}]
 };
 function makeWorkout(){
- const p=data?.prefs||{}; const eq=p.equipment||'Dumbbells and bodyweight';
- const key=eq==='Bodyweight only'?'bodyweight':eq==='Resistance bands'?'bands':eq==='Gym equipment'?'gym':'dumbbell';
- let count=Number(p.duration||12)<=5?2:Number(p.duration||12)<=10?3:Number(p.duration||12)<=12?4:5;
- if((p.level||'').startsWith('Beginner')) count=Math.min(count,4);
- return exerciseCatalog[key].slice(0,count).map(x=>({...x}));
+ const p=data?.prefs||{};
+ const eq=p.equipment||'Dumbbells and bodyweight';
+ const key=eq==='Bodyweight only'?'bodyweight':
+   eq==='Resistance bands'?'bands':
+   eq==='Gym equipment'?'gym':'dumbbell';
+
+ const beginner=(p.level||'').startsWith('Beginner');
+ const catalog=exerciseCatalog[key]||exerciseCatalog.bodyweight;
+
+ if(beginner){
+   const beginnerOrder={
+     dumbbell:[
+       'Glute bridge',
+       'Dumbbell floor press',
+       'One-arm dumbbell row',
+       'Dumbbell squat'
+     ],
+     bodyweight:[
+       'Chair squat',
+       'Wall push-up',
+       'Glute bridge',
+       'Calf raise with support'
+     ],
+     bands:[
+       'Glute bridge',
+       'Seated band row',
+       'Band chest press',
+       'Band squat'
+     ],
+     gym:[
+       'Glute bridge',
+       'Chest press machine',
+       'Seated row machine',
+       'Bodyweight or machine squat'
+     ]
+   };
+
+   const preferred=beginnerOrder[key]||beginnerOrder.bodyweight;
+   const ordered=preferred
+     .map(name=>catalog.find(x=>x.name===name))
+     .filter(Boolean);
+
+   const count=Number(p.duration||12)<=5?2:
+     Number(p.duration||12)<=10?3:4;
+
+   return ordered.slice(0,count).map(x=>({...x}));
+ }
+
+ const count=Number(p.duration||12)<=5?2:
+   Number(p.duration||12)<=10?3:
+   Number(p.duration||12)<=12?4:5;
+
+ return catalog.slice(0,count).map(x=>({...x}));
 }
 let data=loadData(),step=0,remaining=45,interval=null,paused=false,startedAt=null,completed=[],sessionCheckin=null,safetyStop=false;
 function loadData(){const fresh={pathFeedback:[],prefs:{name:'',goal:'Build strength',equipment:'Dumbbells and bodyweight',duration:'12',level:'Beginner / getting back into it'},sessions:[]};try{const current=localStorage.getItem(KEY);if(current)return {...fresh,...JSON.parse(current)}}catch(e){return fresh}for(const oldKey of PREVIOUS_KEYS){try{const previous=localStorage.getItem(oldKey);if(previous){const migrated={...fresh,...JSON.parse(previous)};try{localStorage.setItem(KEY,JSON.stringify(migrated))}catch(e){/* Keep migrated data available in memory if storage is unavailable. */}return migrated}}catch(e){/* Skip an unreadable legacy key and try the next supported version. */}}return fresh}
